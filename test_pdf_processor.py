@@ -10,7 +10,7 @@ def run_test():
     print("--- Starting PDF Processor Test ---")
 
     # Define the path to your sample PDF
-    pdf_path = "academic_handbook.pdf"
+    pdf_path = "NIPS-2017-attention-is-all-you-need-Paper.pdf"
 
     # 1. Check if the sample file exists
     if not os.path.exists(pdf_path):
@@ -37,7 +37,7 @@ def run_test():
 
         # Print information about the first few chunks to inspect them
         print("\n--- Inspecting the first 3 chunks: ---")
-        for i, chunk in enumerate(chunks[:3]):
+        for i, chunk in enumerate(chunks[:30]):
             print(f"\n----- Chunk {i+1} -----")
             print(f"Type: {type(chunk)}")
             # The chunk object has 'page_content' and 'metadata' attributes

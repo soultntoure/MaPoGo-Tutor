@@ -24,7 +24,7 @@ def clean_text_from_pdf(text: str) -> str:
 
 def process_pdf_semantically(
     file_path: str,
-    breakpoint_threshold_amount: float = 0.8 
+    breakpoint_threshold_amount: float = 75
 ) -> List[Document]:
     """
     Extracts text from a PDF and splits it into semantically coherent chunks
@@ -105,10 +105,6 @@ def process_pdf_semantically(
     print(f"--- Created {len(chunks)} semantic chunks. ---")
     
     # You can inspect a chunk to see the result
-    if chunks:
-        print("\n--- Example Chunk (first 200 chars) ---")
-        print(chunks[0].page_content[:200] + "..." if len(chunks[0].page_content) > 200 else chunks[0].page_content)
-        print(f"Metadata: {chunks[0].metadata}")
-        print("--------------------------------------\n")
+
 
     return chunks

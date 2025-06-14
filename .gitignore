@@ -7,7 +7,7 @@ __pycache__/
 
 # Local environment variables
 .env
-
+.pdf
 # Uploads/temporary files
 temp_uploads/
 
