@@ -22,11 +22,11 @@ logging.basicConfig(
 )
 
 # Define the path to your test document
-PDF_PATH = "mars_lithograph.pdf"
+PDF_PATH = "academic_handbook.pdf"
 
 
 # Define the test questions
-QUESTION_IN_CONTEXT = "what are some important"
+QUESTION_IN_CONTEXT = "what is cheaper cooking or eating outside"
 QUESTION_OUT_OF_CONTEXT = "is the temperature in mars hot or cold"
 def run_test_pipeline():
     """
@@ -78,38 +78,38 @@ def run_test_pipeline():
     # logging.info("\n--- [STAGE 4/4] Running test queries ---")
 
     # Test 1: In-Context Question
-    print("\n" + "="*50)
-    logging.info(f"TEST 1: Asking an IN-CONTEXT question...")
-    print(f"QUESTION: {QUESTION_IN_CONTEXT}")
-    response_in_context = llm_handler.get_concept_explanation(QUESTION_IN_CONTEXT)
-    print("\nLLM RESPONSE:")
-    print(response_in_context)
-    print("="*50)
+    # print("\n" + "="*50)
+    # logging.info(f"TEST 1: Asking an IN-CONTEXT question...")
+    # print(f"QUESTION: {QUESTION_IN_CONTEXT}")
+    # response_in_context = llm_handler.get_concept_explanation(QUESTION_IN_CONTEXT)
+    # print("\nLLM RESPONSE:")
+    # print(response_in_context)
+    # print("="*50)
 
     # Test 2: Out-of-Context Question
-    print("\n" + "="*50)
-    logging.info(f"TEST 2: Asking an OUT-OF-CONTEXT question...")
-    print(f"QUESTION: {QUESTION_OUT_OF_CONTEXT}")
-    response_out_of_context = llm_handler.get_concept_explanation(QUESTION_OUT_OF_CONTEXT)
-    print("\nLLM RESPONSE:")
-    print(response_out_of_context)
-    print("="*50)
+    # print("\n" + "="*50)
+    # logging.info(f"TEST 2: Asking an OUT-OF-CONTEXT question...")
+    # print(f"QUESTION: {QUESTION_OUT_OF_CONTEXT}")
+    # response_out_of_context = llm_handler.get_concept_explanation(QUESTION_OUT_OF_CONTEXT)
+    # print("\nLLM RESPONSE:")
+    # print(response_out_of_context)
+    # print("="*50)
     
     # Test 3: Document Summary
-    print("\n" + "="*50)
-    logging.info("TEST 3: Generating a document summary...")
-    summary = llm_handler.get_summary()
-    print("\nDOCUMENT SUMMARY:")
-    print(summary)
-    print("="*50)
+    # print("\n" + "="*50)
+    # logging.info("TEST 3: Generating a document summary...")
+    # summary = llm_handler.get_summary()
+    # print("\nDOCUMENT SUMMARY:")
+    # print(summary)
+    # print("="*50)
 
     # Test 4: Quiz Generation
-    # print("\n" + "="*50)
-    # logging.info("TEST 4: Generating a 'hard' quiz...")
-    # quiz = llm_handler.get_quiz_questions(difficulty="hard", num_questions=3)
-    # print("\nGENERATED QUIZ:")
-    # print(quiz)
-    # print("="*50)
+    print("\n" + "="*50)
+    logging.info("TEST 4: Generating a 'hard' quiz...")
+    quiz = llm_handler.get_quiz_questions(difficulty="hard", num_questions=5)
+    print("\nGENERATED QUIZ:")
+    print(quiz)
+    print("="*50)
 
 
     # --- FINAL CLEANUP ---

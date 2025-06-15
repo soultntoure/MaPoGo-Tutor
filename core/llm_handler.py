@@ -123,23 +123,43 @@ Provide a detailed, clear, and helpful answer. If the information to answer the 
 
     def get_quiz_questions(self, difficulty: str = "medium", num_questions: int = 5) -> str:
         """
-        Generates a multiple-choice quiz from the document content.
+        Generates a multiple-choice quiz from the document content using an
+        adaptive number of chunks based on the number of questions requested.
         """
         logging.info(f"Generating {difficulty} quiz with {num_questions} questions...")
-        retriever = get_retriever(k=10) # Get a good variety of chunks for quiz
+        
+        # --- Adaptive K Logic for Quiz ---
+        # 1. Calculate a proportional k. We want ~2 chunks of context per question.
+        proportional_k = num_questions * 2
+
+        # 2. Define safety nets: a floor and a ceiling for k.
+        MIN_QUIZ_CHUNKS = 4   # At least 4 chunks to ensure decent context
+        MAX_QUIZ_CHUNKS = 30  # Cap at 20 to avoid excessive context/cost
+
+        # 3. Clamp the calculated k within our min/max bounds.
+        dynamic_k = max(MIN_QUIZ_CHUNKS, min(proportional_k, MAX_QUIZ_CHUNKS))
+        
+        logging.info(f"Adaptively retrieving {dynamic_k} chunks for the quiz.")
+
+        # --- Use the RIGHT retrieval strategy for a quiz: 'similarity' ---
+        # We want the most relevant chunks, not the most diverse.
+        retriever = get_retriever(k=dynamic_k, search_type="similarity")
         if not retriever:
             return "Vector store not initialized. Please upload a PDF first."
         
-        context_docs = retriever.invoke("Key concepts and important details from the document.")
+        # A generic query to gather important details for a quiz.
+        context_docs = retriever.invoke("Key concepts, important definitions, and significant details from the document.")
         context = format_docs(context_docs)
 
+        # --- The rest of the prompt and chain logic is unchanged ---
         system_prompt = """You are an expert quizmaster. Based on the context below, create a multiple-choice quiz.
-                        Instructions:
-                        1. Generate exactly {num_questions} questions.
-                        2. The difficulty of the questions should be {difficulty}.
-                        3. For each question, provide 4 options (A, B, C, D).
-                        4. Clearly mark the correct answer for each question.
-                        5. Ensure the questions are derived *only* from the provided context."""
+            
+            Instructions:
+            1. Generate exactly {num_questions} questions.
+            2. The difficulty of the questions should be {difficulty}.
+            3. For each question, provide 4 options (A, B, C, D).
+            4. Clearly mark the correct answer for each question.
+            5. Ensure the questions are derived *only* from the provided context."""
         human_prompt = "CONTEXT:\n{context}\n\nQUIZ:"
         
         prompt_template = ChatPromptTemplate.from_messages([
