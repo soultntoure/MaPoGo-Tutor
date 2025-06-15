@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 
 # Define the path to your test document
-PDF_PATH = "academic_handbook.pdf"
+PDF_PATH = "attention_is_all_you_need.pdf"
 
 
 # Define the test questions
