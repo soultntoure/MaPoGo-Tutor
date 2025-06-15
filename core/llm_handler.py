@@ -1,96 +1,136 @@
 # core/llm_handler.py
 
+import logging
 from typing import List
-from langchain.prompts import PromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.schema import Document
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.documents import Document
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from config import Config
 
-def get_llm_response(question: str, context_docs: List[Document]) -> str:
+# Import the centralized models and the retriever function
+from core.model_manager import llm 
+from core.vector_store_manager import get_retriever
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def format_docs(docs: List[Document]) -> str:
+    """Helper function to format retrieved documents into a single string."""
+    return "\n\n---\n\n".join(doc.page_content for doc in docs)
+
+
+class LLMHandler:
     """
-    Generates a response from the LLM based on a question and context documents.
+    Handles all interactions with the Language Model.
 
-    This function orchestrates the "Generation" part of the RAG pipeline.
-    It takes the retrieved documents, formats them into a detailed prompt,
-    and gets the final answer from the Gemini model.
-
-    Args:
-        question (str): The user's question.
-        context_docs (List[Document]): A list of context documents from the vector store.
-
-    Returns:
-        str: The generated answer from the language model.
+    This class encapsulates the logic for different RAG-based tasks such as
+    generating summaries, answering questions about concepts, and creating quizzes.
+    It uses a centralized LLM instance and retriever.
     """
-    
-    # 1. Define the Prompt Template
-    # This is the instruction manual for the LLM. It's crucial for controlling
-    # the output and ensuring the model answers based on the provided context.
-    prompt_template_str = """
-    You are an expert AI tutor. Your task is to answer the user's question based *only* on the provided document context.
-    
-    Provide a detailed, clear, and helpful answer. If the information to answer the question is not present in the context, you MUST state: 
-    "Based on the provided document, I cannot answer this question." 
-    Do not add any information that is not from the context.
+    def __init__(self):
+        # The LLM is already initialized in model_manager, so we just use it.
+        self.llm = llm
+        self.output_parser = StrOutputParser()
+        logging.info("LLMHandler initialized.")
 
-    CONTEXT:
-    {context}
+    def get_summary(self, num_chunks: int = 10) -> str:
+        """
+        Generates a concise summary of the entire document.
 
-    QUESTION:
-    {question}
-
-    ANSWER:
-    """
-    
-    prompt = PromptTemplate(
-        template=prompt_template_str, 
-        input_variables=["context", "question"]
-    )
-
-    # 2. Initialize the Language Model
-    # We use a low temperature to encourage factual, less creative answers.
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
-        google_api_key=Config.GOOGLE_API_KEY,
-        temperature=0.2
-    )
-
-   
-
-
-    def format_docs(docs: List[Document]) -> str:
-        """A helper function to combine document contents into a single string."""
-        return "\n\n".join(doc.page_content for doc in docs)
-
-    # The chain is constructed as follows:
-    # 1. We define a dictionary with the inputs to the prompt (`context` and `question`).
-    #    - `context` is populated by taking the `input_documents`, formatting them with our helper function.
-    #    - `question` is passed through directly from the user's original question.
-    # 2. This dictionary is then "piped" into the `prompt`.
-    # 3. The formatted `prompt` is "piped" into the `llm`.
-    # 4. The output from the `llm` is "piped" into a `StrOutputParser` to get the final string.
-    rag_chain = (
-        {"context": (lambda x: format_docs(x["input_documents"])), "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
-
-    try:
-        # To run the LCEL chain, we use the .invoke() method.
-        # We only need to pass the original question, as the context is handled within the chain.
-        # NOTE: The retriever will pass the docs, so the input to the chain will be a dictionary
-        # In a full chain, it would look like this:
-        # full_chain = retriever | rag_chain
-        # For this function, we assume docs are already retrieved.
+        It retrieves a broad set of chunks from the document to form a basis
+        for the summary.
+        """
+        logging.info("Generating document summary...")
+        retriever = get_retriever(k=num_chunks)
+        if not retriever:
+            return "Vector store not initialized. Please upload a PDF first."
         
-        # We manually format the input dictionary that the chain expects
-        chain_input = {"input_documents": context_docs, "question": question}
-        response = rag_chain.invoke(chain_input)
+        # We retrieve docs with a generic query that represents the whole document.
+        context_docs = retriever.invoke("A comprehensive overview of the entire document's content.")
+        context = format_docs(context_docs)
         
+        system_prompt = "You are an expert academic assistant. Based on the following context extracted from a document, please provide a concise, high-level summary. Capture the main ideas and key topics covered."
+        human_prompt = "CONTEXT:\n{context}\n\nCONCISE SUMMARY:"
+        
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", human_prompt)
+        ])
+
+        chain = prompt_template | self.llm | self.output_parser
+        summary = chain.invoke({"context": context})
+        return summary
+
+
+
+
+    def get_concept_explanation(self, user_query: str) -> str:
+        """
+        Explains a specific concept based on the user's query.
+
+        This is the core RAG function for user questions.
+        """
+        logging.info(f"Generating explanation for query: '{user_query}'")
+        retriever = get_retriever(k=5) # Retrieve 5 relevant chunks
+        if not retriever:
+            return "Vector store not initialized. Please upload a PDF first."
+
+        system_prompt = """You are an expert AI tutor. Your task is to answer the user's question based *only* on the provided document context.
+Provide a detailed, clear, and helpful answer. If the information to answer the question is not present in the context, you MUST state: "Based on the provided document, I cannot answer this question." Do not add any information that is not from the context."""
+        human_prompt = "CONTEXT:\n{context}\n\nQUESTION:\n{question}\n\nHELPFUL ANSWER:"
+
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", human_prompt)
+        ])
+
+        # This chain combines retrieval and generation
+        rag_chain = (
+            {
+                "context": retriever | format_docs, 
+                "question": lambda x: x # Pass the user query through
+            }
+            | prompt_template
+            | self.llm
+            | self.output_parser
+        )
+        
+        response = rag_chain.invoke(user_query)
         return response
 
-    except Exception as e:
-        print(f"An error occurred while running the LLM chain: {e}")
-        return "An error occurred while processing your question."
+
+
+
+
+
+    def get_quiz_questions(self, difficulty: str = "medium", num_questions: int = 5) -> str:
+        """
+        Generates a multiple-choice quiz from the document content.
+        """
+        logging.info(f"Generating {difficulty} quiz with {num_questions} questions...")
+        retriever = get_retriever(k=10) # Get a good variety of chunks for quiz
+        if not retriever:
+            return "Vector store not initialized. Please upload a PDF first."
+        
+        context_docs = retriever.invoke("Key concepts and important details from the document.")
+        context = format_docs(context_docs)
+
+        system_prompt = """You are an expert quizmaster. Based on the context below, create a multiple-choice quiz.
+                        Instructions:
+                        1. Generate exactly {num_questions} questions.
+                        2. The difficulty of the questions should be {difficulty}.
+                        3. For each question, provide 4 options (A, B, C, D).
+                        4. Clearly mark the correct answer for each question.
+                        5. Ensure the questions are derived *only* from the provided context."""
+        human_prompt = "CONTEXT:\n{context}\n\nQUIZ:"
+        
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", human_prompt)
+        ])
+        
+        chain = prompt_template | self.llm | self.output_parser
+        quiz = chain.invoke({
+            "num_questions": num_questions,
+            "difficulty": difficulty,
+            "context": context
+        })
+        return quiz

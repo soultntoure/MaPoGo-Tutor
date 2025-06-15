@@ -1,105 +1,125 @@
 # test_full_rag_pipeline.py
 
 import os
+import logging
+from dotenv import load_dotenv
+
+# --- Important: Load environment variables before importing other modules ---
+# This ensures that Config() can access GOOGLE_API_KEY when modules are imported.
+load_dotenv() 
+
+# Import your project's core components
 from core.pdf_processor import process_pdf_semantically
-from core.vector_store_manager import create_vector_store, get_retriever, clear_vector_store
-from core.llm_handler import get_llm_response
+from core.vector_store_manager import create_vector_store, clear_vector_store
+from core.llm_handler import LLMHandler
 
-def run_full_rag_test():
+# --- 1. CONFIGURE LOGGING AND TEST PARAMETERS ---
+
+# Set up detailed logging to see the inner workings of the pipeline
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+)
+
+# Define the path to your test document
+PDF_PATH = "mars_lithograph.pdf" 
+
+# Define the test questions
+QUESTION_IN_CONTEXT = "What are some significant dates and events in the history of Mars exploration, as described in the document?"
+QUESTION_OUT_OF_CONTEXT = "What is the significance of the 'Canali' in the context of Mars exploration?"
+
+def run_test_pipeline():
     """
-    Tests the complete RAG pipeline:
-    1. Processes a PDF into chunks.
-    2. Creates a vector store from the chunks.
-    3. Retrieves relevant documents for a given question.
-    4. Generates a final answer using the LLM with the retrieved context.
-    5. Verifies behavior for a question that is outside the document's context.
+    Executes a full, end-to-end test of the RAG pipeline.
     """
-    print("--- 🚀 Starting Full RAG Pipeline Test 🚀 ---")
-
-    # --- 1. SETUP ---
-    # Define the path to your test PDF
-    pdf_path = "mars_lithograph.pdf"
+    logging.info("==================================================")
+    logging.info("======= STARTING E2E RAG PIPELINE TEST =======")
+    logging.info("==================================================")
     
-    if not os.path.exists(pdf_path):
-        print(f"❌ FATAL ERROR: Test PDF not found at '{pdf_path}'")
-        print("Please make sure the PDF file is in the same directory as this script.")
+    # --- PRE-TEST CHECKS ---
+    if not os.path.exists(PDF_PATH):
+        logging.error(f"FATAL: Test PDF not found at '{PDF_PATH}'. Please download it and place it in the project root.")
         return
 
-    # Define the test questions
-    question_in_context = "What does scientific evidence suggest about the presence of water on Mars?"
-    question_out_of_context = "What is the best recipe for baking chocolate chip cookies?"
-
-    # Process the PDF and create the vector store once for all tests
-    print("\n--- STAGE 1: PDF Processing & Vector Store Creation ---")
-    chunks = process_pdf_semantically(pdf_path)
-    if not chunks:
-        print("❌ TEST FAILED: PDF processing yielded no chunks.")
-        return
-    
-    clear_vector_store()  # Ensure store is fresh
-    create_vector_store(chunks)
-    retriever = get_retriever()
-    if not retriever:
-        print("❌ TEST FAILED: Vector store or retriever could not be initialized.")
-        return
-    print("✅ PDF processed and vector store created successfully.")
-    print("-" * 50)
-
-    # --- 2. TEST CASE 1: Question within document context ---
-    print("\n--- STAGE 2: Testing with a question IN CONTEXT ---")
-    print(f"❓ Query: \"{question_in_context}\"")
-
-    # Retrieve relevant documents
-    print("\n   -> Retrieving relevant documents...")
-    # Use the modernized .invoke() method
-    relevant_docs = retriever.invoke(question_in_context)
-    print(f"   -> Retrieved {len(relevant_docs)} documents.")
-
-    if not relevant_docs:
-        print("   ⚠️ WARNING: No relevant documents were retrieved. The LLM will have no context.")
-    
-    # Generate the response
-    print("   -> Generating response from LLM...")
-    final_answer = get_llm_response(question_in_context, relevant_docs)
-
-    print("\n" + "="*10 + " FINAL ANSWER " + "="*10)
-    print(final_answer)
-    print("="*34)
-    print("-" * 50)
-
-
-    # --- 3. TEST CASE 2: Question outside of document context ---
-    print("\n--- STAGE 3: Testing with a question OUTSIDE OF CONTEXT ---")
-    print(f"❓ Query: \"{question_out_of_context}\"")
-
-    # Retrieve relevant documents
-    print("\n   -> Retrieving relevant documents...")
-    # The retriever will still try to find the "closest" documents, even if they aren't very relevant.
-    relevant_docs_for_off_topic = retriever.invoke(question_out_of_context)
-    print(f"   -> Retrieved {len(relevant_docs_for_off_topic)} documents (these may not be truly relevant).")
-
-    # Generate the response
-    print("   -> Generating response from LLM...")
-    final_answer_off_topic = get_llm_response(question_out_of_context, relevant_docs_for_off_topic)
-    
-    print("\n" + "="*10 + " FINAL ANSWER " + "="*10)
-    print(final_answer_off_topic)
-    print("="*34)
-    print("-" * 50)
-
-    # --- 4. CLEANUP ---
-    print("\n--- STAGE 4: Cleaning up ---")
+    # Ensure we start with a clean slate
     clear_vector_store()
-    print("\n--- 🏁 Full RAG Pipeline Test Finished 🏁 ---")
+
+    # --- STAGE 1: PDF PROCESSING (LOADING & CHUNKING) ---
+    logging.info(f"\n--- [STAGE 1/4] Processing PDF: {PDF_PATH} ---")
+    try:
+        text_chunks = process_pdf_semantically(PDF_PATH)
+        if not text_chunks:
+            logging.error("PDF processing resulted in zero chunks. Aborting test.")
+            return
+        logging.info(f"Successfully processed PDF into {len(text_chunks)} semantic chunks.")
+    except Exception as e:
+        logging.error(f"An error occurred during PDF processing: {e}", exc_info=True)
+        return
+
+    # --- STAGE 2: VECTOR STORE CREATION (EMBEDDING & STORING) ---
+    logging.info("\n--- [STAGE 2/4] Creating in-memory vector store ---")
+    try:
+        create_vector_store(text_chunks)
+        logging.info("Vector store created successfully.")
+    except Exception as e:
+        logging.error(f"An error occurred during vector store creation: {e}", exc_info=True)
+        return
+
+    # --- STAGE 3: INITIALIZE LLM HANDLER ---
+    logging.info("\n--- [STAGE 3/4] Initializing LLM Handler ---")
+    try:
+        llm_handler = LLMHandler()
+        logging.info("LLMHandler initialized successfully.")
+    except Exception as e:
+        logging.error(f"Failed to initialize LLMHandler: {e}", exc_info=True)
+        return
+
+    # --- STAGE 4: RUNNING QUERIES ---
+    logging.info("\n--- [STAGE 4/4] Running test queries ---")
+
+    # Test 1: In-Context Question
+    print("\n" + "="*50)
+    logging.info(f"TEST 1: Asking an IN-CONTEXT question...")
+    print(f"QUESTION: {QUESTION_IN_CONTEXT}")
+    response_in_context = llm_handler.get_concept_explanation(QUESTION_IN_CONTEXT)
+    print("\nLLM RESPONSE:")
+    print(response_in_context)
+    print("="*50)
+
+    # Test 2: Out-of-Context Question
+    print("\n" + "="*50)
+    logging.info(f"TEST 2: Asking an OUT-OF-CONTEXT question...")
+    print(f"QUESTION: {QUESTION_OUT_OF_CONTEXT}")
+    response_out_of_context = llm_handler.get_concept_explanation(QUESTION_OUT_OF_CONTEXT)
+    print("\nLLM RESPONSE:")
+    print(response_out_of_context)
+    print("="*50)
+    
+    # Test 3: Document Summary
+    print("\n" + "="*50)
+    logging.info("TEST 3: Generating a document summary...")
+    summary = llm_handler.get_summary()
+    print("\nDOCUMENT SUMMARY:")
+    print(summary)
+    print("="*50)
+
+    # Test 4: Quiz Generation
+    print("\n" + "="*50)
+    logging.info("TEST 4: Generating a 'hard' quiz...")
+    quiz = llm_handler.get_quiz_questions(difficulty="hard", num_questions=3)
+    print("\nGENERATED QUIZ:")
+    print(quiz)
+    print("="*50)
+
+
+    # --- FINAL CLEANUP ---
+    logging.info("\n--- Test complete. Clearing vector store. ---")
+    clear_vector_store()
+    logging.info("==================================================")
+    logging.info("=============== TEST RUN FINISHED ===============")
+    logging.info("==================================================")
 
 
 if __name__ == '__main__':
-    # Ensure you have a .env file with your GOOGLE_API_KEY or have it set as an environment variable
-    # For example, create a file named 'config.py' with:
-    # from dotenv import load_dotenv
-    # import os
-    # load_dotenv()
-    # class Config:
-    #     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-    run_full_rag_test()
+    # This block ensures the test runs only when the script is executed directly
+    run_test_pipeline()

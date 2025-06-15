@@ -2,7 +2,7 @@
 import logging
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_experimental.text_splitter import SemanticChunker
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from core.model_manager import embeddings_model
 from langchain_core.documents import Document # Ensure Document type is imported for clarity
 import re # Still useful for text cleaning
 from typing import List, Optional # For type hints
@@ -42,20 +42,16 @@ def process_pdf_semantically(
     logging.info(f"Starting Semantic PDF Processing for: {file_path}")
 
     # 1. Initialize the embedding model needed for semantic analysis
-    embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
-            google_api_key=Config.GOOGLE_API_KEY,
-            task_type="retrieval_document"
-        )
+    
 
     # 2. Configure the SemanticChunker
     text_splitter = SemanticChunker(
-        embeddings,
+        embeddings_model,
         breakpoint_threshold_type="percentile",
         breakpoint_threshold_amount=Config.SEMANTIC_CHUNKER_BREAKPOINT_THRESHOLD
     )
     
-    print(f"SemanticChunker initialized with percentile threshold: {breakpoint_threshold_amount}.")
+    logging.info(f"SemanticChunker initialized with percentile threshold: {Config.SEMANTIC_CHUNKER_BREAKPOINT_THRESHOLD}.")
 
    
     loaded_pages: List[Document] = []

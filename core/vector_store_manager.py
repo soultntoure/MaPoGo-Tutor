@@ -2,10 +2,13 @@
 import logging
 from typing import List, Optional
 from langchain_community.vectorstores import Chroma
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from core.model_manager import embeddings_model
 from langchain.schema import Document
 from langchain.schema.vectorstore import VectorStoreRetriever
 from config import Config
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 # This global variable will act as our simple, in-memory "session" storage.
 # It holds the vector store for the most recently uploaded PDF.
@@ -41,20 +44,15 @@ def create_vector_store(text_chunks: List[Document]):
         return
 
     try:
-        # 1. Initialize the embedding model
-        embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
-            google_api_key=Config.GOOGLE_API_KEY
-        )
 
-        # 2. Create the Chroma vector store from the documents and embeddings
+        #  Create the Chroma vector store from the documents and embeddings
         # This is the core step where text is converted to vectors and indexed.
-        print(f"Creating vector store from {len(text_chunks)} chunks...")
+        logging.info(f"Creating vector store from {len(text_chunks)} chunks...")
         vector_store = Chroma.from_documents(
             documents=text_chunks,
-            embedding=embeddings
+            embedding=embeddings_model
         )
-        print("--- In-memory vector store created successfully. ---")
+        logging.info("--- In-memory vector store created successfully. ---")
 
     except Exception as e:
         print(f"An error occurred while creating the vector store: {e}")
