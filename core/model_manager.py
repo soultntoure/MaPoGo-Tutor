@@ -27,7 +27,7 @@ embeddings_model = GoogleGenerativeAIEmbeddings(
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
     google_api_key=Config.GOOGLE_API_KEY,
-    temperature=0.7, # A balanced value for creativity and factuality
+    temperature=1.0, # A balanced value for creativity and factuality
 )
 
 print("--- AI Models Initialized (Embeddings & LLM) ---")

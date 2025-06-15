@@ -22,13 +22,12 @@ logging.basicConfig(
 )
 
 # Define the path to your test document
-PDF_PATH = "chapter3.pdf"
+PDF_PATH = "mars_lithograph.pdf"
 
 
 # Define the test questions
-QUESTION_IN_CONTEXT = "What are some significant dates and events in the history of Mars exploration, as described in the document?"
-QUESTION_OUT_OF_CONTEXT = "What is the significance of the 'Canali' in the context of Mars exploration?"
-
+QUESTION_IN_CONTEXT = "what are some important"
+QUESTION_OUT_OF_CONTEXT = "is the temperature in mars hot or cold"
 def run_test_pipeline():
     """
     Executes a full, end-to-end test of the RAG pipeline.
@@ -79,22 +78,22 @@ def run_test_pipeline():
     # logging.info("\n--- [STAGE 4/4] Running test queries ---")
 
     # Test 1: In-Context Question
-    # print("\n" + "="*50)
-    # logging.info(f"TEST 1: Asking an IN-CONTEXT question...")
-    # print(f"QUESTION: {QUESTION_IN_CONTEXT}")
-    # response_in_context = llm_handler.get_concept_explanation(QUESTION_IN_CONTEXT)
-    # print("\nLLM RESPONSE:")
-    # print(response_in_context)
-    # print("="*50)
+    print("\n" + "="*50)
+    logging.info(f"TEST 1: Asking an IN-CONTEXT question...")
+    print(f"QUESTION: {QUESTION_IN_CONTEXT}")
+    response_in_context = llm_handler.get_concept_explanation(QUESTION_IN_CONTEXT)
+    print("\nLLM RESPONSE:")
+    print(response_in_context)
+    print("="*50)
 
     # Test 2: Out-of-Context Question
-    # print("\n" + "="*50)
-    # logging.info(f"TEST 2: Asking an OUT-OF-CONTEXT question...")
-    # print(f"QUESTION: {QUESTION_OUT_OF_CONTEXT}")
-    # response_out_of_context = llm_handler.get_concept_explanation(QUESTION_OUT_OF_CONTEXT)
-    # print("\nLLM RESPONSE:")
-    # print(response_out_of_context)
-    # print("="*50)
+    print("\n" + "="*50)
+    logging.info(f"TEST 2: Asking an OUT-OF-CONTEXT question...")
+    print(f"QUESTION: {QUESTION_OUT_OF_CONTEXT}")
+    response_out_of_context = llm_handler.get_concept_explanation(QUESTION_OUT_OF_CONTEXT)
+    print("\nLLM RESPONSE:")
+    print(response_out_of_context)
+    print("="*50)
     
     # Test 3: Document Summary
     print("\n" + "="*50)

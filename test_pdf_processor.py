@@ -10,7 +10,7 @@ def run_test():
     print("--- Starting PDF Processor Test ---")
 
     # Define the path to your sample PDF
-    pdf_path = "mars_lithograph.pdf"
+    pdf_path = "Lecture 07.pdf"
 
     # 1. Check if the sample file exists
     if not os.path.exists(pdf_path):
@@ -41,7 +41,7 @@ def run_test():
             print(f"\n----- Chunk {i+1} -----")
             print(f"Type: {type(chunk)}")
             # The chunk object has 'page_content' and 'metadata' attributes
-            print(f"Content Preview: '{chunk.page_content[:350]}...'")
+            print(f"Content Preview: '{chunk.page_content[:1000]}...'")
             print(f"Character Count: {len(chunk.page_content)}")
             print("-" * 20)
     else:

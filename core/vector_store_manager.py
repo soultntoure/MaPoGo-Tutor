@@ -59,6 +59,20 @@ def create_vector_store(text_chunks: List[Document]):
         # Ensure the store is None if creation fails
         vector_store = None
 
+def get_total_chunks() -> int:
+    """
+    Returns the total number of vectors/documents in the current vector store.
+    """
+    if vector_store:
+        try:
+            # Chroma's API provides a count method on the underlying collection object.
+            # Note: _collection is a semi-private attribute, but it's the standard way
+            # to access this information in ChromaDB via LangChain.
+            return vector_store._collection.count()
+        except Exception as e:
+            logging.error(f"Could not retrieve chunk count from vector store: {e}")
+            return 0
+    return 0
 
 # core/vector_store_manager.py
 def get_retriever(k: int = 5, search_type: str = "similarity") -> Optional[VectorStoreRetriever]:
@@ -70,9 +84,19 @@ def get_retriever(k: int = 5, search_type: str = "similarity") -> Optional[Vecto
         search_type (str): The type of search to perform. "similarity" or "mmr".
     """
     if vector_store:
+        # Before creating the retriever, let's make sure k is not larger than the total chunks
+        total_chunks_available = get_total_chunks()
+        if total_chunks_available == 0:
+             return None # Should not happen if vector_store exists, but a good safeguard
+        
+        # Adjust k if it's too large
+        safe_k = min(k, total_chunks_available)
+        if k > total_chunks_available:
+            logging.warning(f"Requested k={k} chunks, but only {total_chunks_available} are available. Using k={safe_k}.")
+
         return vector_store.as_retriever(
             search_type=search_type, 
-            search_kwargs={"k": k}
+            search_kwargs={"k": safe_k}
         )
     
     logging.warning("Vector store not initialized. Please upload a PDF first.")

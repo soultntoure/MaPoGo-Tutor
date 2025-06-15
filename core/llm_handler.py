@@ -8,7 +8,8 @@ from langchain_core.output_parsers import StrOutputParser
 
 # Import the centralized models and the retriever function
 from core.model_manager import llm 
-from core.vector_store_manager import get_retriever
+from core.vector_store_manager import get_retriever, get_total_chunks
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -31,24 +32,41 @@ class LLMHandler:
         self.output_parser = StrOutputParser()
         logging.info("LLMHandler initialized.")
 
-    def get_summary(self, num_chunks: int = 10) -> str:
-        """
-        Generates a concise summary of the entire document.
 
-        It retrieves a broad set of chunks from the document to form a basis
-        for the summary.
+    def get_summary(self) -> str:
         """
+        Generates a concise summary of the document using an adaptive
+        number of chunks based on the document's size.
+        """
+        logging.info("Generating document summary with adaptive retrieval...")
         
+        total_chunks = get_total_chunks()
+        if total_chunks == 0:
+            return "Vector store is empty. Please upload a PDF first."
+
+        # --- Adaptive K Logic ---
+        # 1. Calculate a proportional number of chunks (e.g., 20% of the doc)
+        proportional_k = int(total_chunks * 0.25)
+
+        # 2. Define safety nets: a floor and a ceiling for k
+        MIN_SUMMARY_CHUNKS = 7
+        MAX_SUMMARY_CHUNKS = 25 
+
+        # 3. Clamp the calculated k within our min/max bounds
+        dynamic_k = max(MIN_SUMMARY_CHUNKS, min(proportional_k, MAX_SUMMARY_CHUNKS))
         
-        logging.info("Generating document summary...")
-        retriever = get_retriever(k=num_chunks, search_type="mmr")
+        logging.info(f"Total chunks in document: {total_chunks}. Adaptively retrieving {dynamic_k} chunks for summary.")
+
+        # Use the dynamically calculated k with the MMR search type
+        retriever = get_retriever(k=dynamic_k, search_type="mmr")
         if not retriever:
+            # This case is mostly handled by the total_chunks check above, but good practice
             return "Vector store not initialized. Please upload a PDF first."
         
-        # We retrieve docs with a generic query that represents the whole document.
         context_docs = retriever.invoke("A comprehensive overview of the entire document's content.")
         context = format_docs(context_docs)
-        
+
+        # ... The rest of the prompt and chain logic remains exactly the same ...
         system_prompt = "You are an expert academic assistant. Based on the following context extracted from a document, please provide a concise, high-level summary. Capture the main ideas and key topics covered."
         human_prompt = "CONTEXT:\n{context}\n\nCONCISE SUMMARY:"
         
