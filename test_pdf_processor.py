@@ -10,7 +10,7 @@ def run_test():
     print("--- Starting PDF Processor Test ---")
 
     # Define the path to your sample PDF
-    pdf_path = "NIPS-2017-attention-is-all-you-need-Paper.pdf"
+    pdf_path = "mars_lithograph.pdf"
 
     # 1. Check if the sample file exists
     if not os.path.exists(pdf_path):

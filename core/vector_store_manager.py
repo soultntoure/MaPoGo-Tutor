@@ -1,5 +1,5 @@
 # core/vector_store_manager.py
-
+import logging
 from typing import List, Optional
 from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -43,7 +43,7 @@ def create_vector_store(text_chunks: List[Document]):
     try:
         # 1. Initialize the embedding model
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
+            model="models/text-embedding-004",
             google_api_key=Config.GOOGLE_API_KEY
         )
 
@@ -62,20 +62,21 @@ def create_vector_store(text_chunks: List[Document]):
         vector_store = None
 
 
-def get_retriever() -> Optional[VectorStoreRetriever]:
+# core/vector_store_manager.py
+def get_retriever(k: int = 5) -> Optional[VectorStoreRetriever]:
     """
     Returns a retriever object from the currently active vector store.
 
-    The retriever is the interface used to perform similarity searches on the
-    vector store to find documents relevant to a user's query.
+    Args:
+        k (int): The number of top documents to retrieve. Defaults to 5.
 
     Returns:
         Optional[VectorStoreRetriever]: A retriever object if the vector store
                                         exists, otherwise None.
     """
     if vector_store:
-        # as_retriever() is a handy method to get a ready-to-use retriever
-        return vector_store.as_retriever()
+        # Configure the retriever to fetch the top 'k' results
+        return vector_store.as_retriever(search_kwargs={"k": k})
     
-    print("Vector store not initialized. Please upload a PDF first.")
+    logging.warning("Vector store not initialized. Please upload a PDF first.")
     return None

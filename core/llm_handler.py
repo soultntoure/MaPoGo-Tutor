@@ -56,10 +56,7 @@ def get_llm_response(question: str, context_docs: List[Document]) -> str:
         temperature=0.2
     )
 
-    # 3. Define the RAG Chain using LCEL
-    # LangChain Expression Language (LCEL) is the modern way to compose chains.
-    # The `|` (pipe) operator connects the different components of the chain.
-    # We also add an output parser to ensure we get a clean string as the final result.
+   
 
 
     def format_docs(docs: List[Document]) -> str:

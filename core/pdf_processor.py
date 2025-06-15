@@ -1,14 +1,15 @@
 # core/pdf_processor.py
-
-# Import PyPDFLoader from langchain_community instead of direct pypdf
+import logging
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.documents import Document # Ensure Document type is imported for clarity
 import re # Still useful for text cleaning
 from typing import List, Optional # For type hints
-
 from config import Config
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def clean_text_from_pdf(text: str) -> str:
     """
@@ -24,7 +25,7 @@ def clean_text_from_pdf(text: str) -> str:
 
 def process_pdf_semantically(
     file_path: str,
-    breakpoint_threshold_amount: float = 75
+    breakpoint_threshold_amount: float = 65
 ) -> List[Document]:
     """
     Extracts text from a PDF and splits it into semantically coherent chunks
@@ -38,19 +39,20 @@ def process_pdf_semantically(
         list: A list of Document objects, each representing a semantic chunk
               with added metadata (source).
     """
-    print(f"--- Starting Semantic PDF Processing for: {file_path} ---")
+    logging.info(f"Starting Semantic PDF Processing for: {file_path}")
 
     # 1. Initialize the embedding model needed for semantic analysis
     embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001",
-        google_api_key=Config.GOOGLE_API_KEY
-    )
+            model="models/text-embedding-004",
+            google_api_key=Config.GOOGLE_API_KEY,
+            task_type="retrieval_document"
+        )
 
     # 2. Configure the SemanticChunker
     text_splitter = SemanticChunker(
         embeddings,
         breakpoint_threshold_type="percentile",
-        breakpoint_threshold_amount=breakpoint_threshold_amount 
+        breakpoint_threshold_amount=Config.SEMANTIC_CHUNKER_BREAKPOINT_THRESHOLD
     )
     
     print(f"SemanticChunker initialized with percentile threshold: {breakpoint_threshold_amount}.")
