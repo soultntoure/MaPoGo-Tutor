@@ -23,10 +23,7 @@ embeddings_model = GoogleGenerativeAIEmbeddings(
     task_type="retrieval_document" # Use "retrieval_query" for retrieving docs
 )
 
-# Initialize the main language model (LLM) for chat, summarization, etc.
-# We'll use this in the llm_handler.
-# convert_system_message_to_human=True is a standard setting for many chains
-# with Gemini.
+
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
     google_api_key=Config.GOOGLE_API_KEY,

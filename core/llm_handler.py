@@ -38,8 +38,10 @@ class LLMHandler:
         It retrieves a broad set of chunks from the document to form a basis
         for the summary.
         """
+        
+        
         logging.info("Generating document summary...")
-        retriever = get_retriever(k=num_chunks)
+        retriever = get_retriever(k=num_chunks, search_type="mmr")
         if not retriever:
             return "Vector store not initialized. Please upload a PDF first."
         

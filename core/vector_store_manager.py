@@ -61,20 +61,19 @@ def create_vector_store(text_chunks: List[Document]):
 
 
 # core/vector_store_manager.py
-def get_retriever(k: int = 5) -> Optional[VectorStoreRetriever]:
+def get_retriever(k: int = 5, search_type: str = "similarity") -> Optional[VectorStoreRetriever]:
     """
-    Returns a retriever object from the currently active vector store.
-
+    Returns a retriever object.
+    
     Args:
-        k (int): The number of top documents to retrieve. Defaults to 5.
-
-    Returns:
-        Optional[VectorStoreRetriever]: A retriever object if the vector store
-                                        exists, otherwise None.
+        k (int): Number of docs to retrieve.
+        search_type (str): The type of search to perform. "similarity" or "mmr".
     """
     if vector_store:
-        # Configure the retriever to fetch the top 'k' results
-        return vector_store.as_retriever(search_kwargs={"k": k})
+        return vector_store.as_retriever(
+            search_type=search_type, 
+            search_kwargs={"k": k}
+        )
     
     logging.warning("Vector store not initialized. Please upload a PDF first.")
     return None

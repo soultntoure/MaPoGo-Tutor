@@ -24,8 +24,7 @@ def clean_text_from_pdf(text: str) -> str:
     return text
 
 def process_pdf_semantically(
-    file_path: str,
-    breakpoint_threshold_amount: float = 65
+    file_path: str
 ) -> List[Document]:
     """
     Extracts text from a PDF and splits it into semantically coherent chunks

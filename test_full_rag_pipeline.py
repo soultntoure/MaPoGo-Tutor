@@ -22,7 +22,8 @@ logging.basicConfig(
 )
 
 # Define the path to your test document
-PDF_PATH = "mars_lithograph.pdf" 
+PDF_PATH = "chapter3.pdf"
+
 
 # Define the test questions
 QUESTION_IN_CONTEXT = "What are some significant dates and events in the history of Mars exploration, as described in the document?"
@@ -32,9 +33,9 @@ def run_test_pipeline():
     """
     Executes a full, end-to-end test of the RAG pipeline.
     """
-    logging.info("==================================================")
-    logging.info("======= STARTING E2E RAG PIPELINE TEST =======")
-    logging.info("==================================================")
+    # logging.info("==================================================")
+    # logging.info("======= STARTING E2E RAG PIPELINE TEST =======")
+    # logging.info("==================================================")
     
     # --- PRE-TEST CHECKS ---
     if not os.path.exists(PDF_PATH):
@@ -45,7 +46,7 @@ def run_test_pipeline():
     clear_vector_store()
 
     # --- STAGE 1: PDF PROCESSING (LOADING & CHUNKING) ---
-    logging.info(f"\n--- [STAGE 1/4] Processing PDF: {PDF_PATH} ---")
+    # logging.info(f"\n--- [STAGE 1/4] Processing PDF: {PDF_PATH} ---")
     try:
         text_chunks = process_pdf_semantically(PDF_PATH)
         if not text_chunks:
@@ -57,10 +58,10 @@ def run_test_pipeline():
         return
 
     # --- STAGE 2: VECTOR STORE CREATION (EMBEDDING & STORING) ---
-    logging.info("\n--- [STAGE 2/4] Creating in-memory vector store ---")
+    # logging.info("\n--- [STAGE 2/4] Creating in-memory vector store ---")
     try:
         create_vector_store(text_chunks)
-        logging.info("Vector store created successfully.")
+        # logging.info("Vector store created successfully.")
     except Exception as e:
         logging.error(f"An error occurred during vector store creation: {e}", exc_info=True)
         return
@@ -69,31 +70,31 @@ def run_test_pipeline():
     logging.info("\n--- [STAGE 3/4] Initializing LLM Handler ---")
     try:
         llm_handler = LLMHandler()
-        logging.info("LLMHandler initialized successfully.")
+        # logging.info("LLMHandler initialized successfully.")
     except Exception as e:
         logging.error(f"Failed to initialize LLMHandler: {e}", exc_info=True)
         return
 
     # --- STAGE 4: RUNNING QUERIES ---
-    logging.info("\n--- [STAGE 4/4] Running test queries ---")
+    # logging.info("\n--- [STAGE 4/4] Running test queries ---")
 
     # Test 1: In-Context Question
-    print("\n" + "="*50)
-    logging.info(f"TEST 1: Asking an IN-CONTEXT question...")
-    print(f"QUESTION: {QUESTION_IN_CONTEXT}")
-    response_in_context = llm_handler.get_concept_explanation(QUESTION_IN_CONTEXT)
-    print("\nLLM RESPONSE:")
-    print(response_in_context)
-    print("="*50)
+    # print("\n" + "="*50)
+    # logging.info(f"TEST 1: Asking an IN-CONTEXT question...")
+    # print(f"QUESTION: {QUESTION_IN_CONTEXT}")
+    # response_in_context = llm_handler.get_concept_explanation(QUESTION_IN_CONTEXT)
+    # print("\nLLM RESPONSE:")
+    # print(response_in_context)
+    # print("="*50)
 
     # Test 2: Out-of-Context Question
-    print("\n" + "="*50)
-    logging.info(f"TEST 2: Asking an OUT-OF-CONTEXT question...")
-    print(f"QUESTION: {QUESTION_OUT_OF_CONTEXT}")
-    response_out_of_context = llm_handler.get_concept_explanation(QUESTION_OUT_OF_CONTEXT)
-    print("\nLLM RESPONSE:")
-    print(response_out_of_context)
-    print("="*50)
+    # print("\n" + "="*50)
+    # logging.info(f"TEST 2: Asking an OUT-OF-CONTEXT question...")
+    # print(f"QUESTION: {QUESTION_OUT_OF_CONTEXT}")
+    # response_out_of_context = llm_handler.get_concept_explanation(QUESTION_OUT_OF_CONTEXT)
+    # print("\nLLM RESPONSE:")
+    # print(response_out_of_context)
+    # print("="*50)
     
     # Test 3: Document Summary
     print("\n" + "="*50)
@@ -104,20 +105,20 @@ def run_test_pipeline():
     print("="*50)
 
     # Test 4: Quiz Generation
-    print("\n" + "="*50)
-    logging.info("TEST 4: Generating a 'hard' quiz...")
-    quiz = llm_handler.get_quiz_questions(difficulty="hard", num_questions=3)
-    print("\nGENERATED QUIZ:")
-    print(quiz)
-    print("="*50)
+    # print("\n" + "="*50)
+    # logging.info("TEST 4: Generating a 'hard' quiz...")
+    # quiz = llm_handler.get_quiz_questions(difficulty="hard", num_questions=3)
+    # print("\nGENERATED QUIZ:")
+    # print(quiz)
+    # print("="*50)
 
 
     # --- FINAL CLEANUP ---
-    logging.info("\n--- Test complete. Clearing vector store. ---")
+    # logging.info("\n--- Test complete. Clearing vector store. ---")
     clear_vector_store()
-    logging.info("==================================================")
+    # logging.info("==================================================")
     logging.info("=============== TEST RUN FINISHED ===============")
-    logging.info("==================================================")
+    # logging.info("==================================================")
 
 
 if __name__ == '__main__':
