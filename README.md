@@ -3,9 +3,9 @@
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.0-black)
 ![React](https://img.shields.io/badge/React-18-blue)
+![Lovable.ai](https://img.shields.io/badge/UI%20built%20with-Lovable.ai-blue)
 ![LangChain](https://img.shields.io/badge/LangChain-blueviolet)
 ![Google Gemini](https://img.shields.io/badge/Google-Gemini-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
 
 MaPoGo Tutor is a full-stack web application designed to explore and demonstrate the principles of Retrieval-Augmented Generation (RAG). It transforms static PDF documents into dynamic, interactive learning experiences, showcasing a complete, end-to-end RAG pipeline from document processing to intelligent, AI-driven interaction.
 
@@ -25,7 +25,7 @@ The primary purpose of this project was to gain practical, hands-on experience i
 *   **Text Processing:** Using modern techniques like semantic chunking for intelligent document parsing.
 *   **Vector Similarity Search:** Leveraging an in-memory vector store (ChromaDB) for efficient, session-based retrieval.
 *   **Prompt Engineering:** Crafting robust, task-specific prompts that enforce desired output formats (like JSON).
-*   **Full-Stack Development:** Building a Python/Flask backend API and consuming it with a React-based frontend.
+*   **Rapid Full-Stack Development:** Building a Python/Flask backend and rapidly prototyping/exporting a React frontend using **Lovable.ai**.
 
 A core design choice is the **ephemeral nature of data**. The application is a session-based demo: when a user uploads a PDF, its content is processed and held in memory only for that session. All data is cleared upon new uploads or a server restart, emphasizing the RAG workflow over long-term data persistence.
 
@@ -47,7 +47,7 @@ A core design choice is the **ephemeral nature of data**. The application is a s
     *   **PDF Processing:** `PyPDFLoader` for extraction, `SemanticChunker` for text splitting.
 
 *   **Frontend:**
-    *   **Framework:** React (UI initially prototyped with Lovable.ai)
+    *   **Framework:** React (The UI was rapidly built and exported using the **Lovable.ai** low-code platform)
     *   **Styling:** Tailwind CSS
     *   **Build Tool:** Vite
 
