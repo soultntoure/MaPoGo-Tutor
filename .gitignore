@@ -1,18 +1,12 @@
-# Virtual environment
-venv/
+# Top-level .gitignore
 
-# Python compiled files
-__pycache__/
-*.pyc
+# Python / Backend
+backend/venv/
+backend/__pycache__/
+backend/.env
+backend/temp_uploads/
 
-# Local environment variables
-.env
-.pdf
-# Uploads/temporary files
-temp_uploads/
-
-# macOS specific
-.DS_Store
-
-# Windows specific
-Thumbs.db
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
