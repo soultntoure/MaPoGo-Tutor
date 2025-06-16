@@ -74,12 +74,12 @@ def upload_pdf():
         logging.info(f"File '{filename}' uploaded successfully to '{filepath}'.")
 
         try:
-            # --- This is the core RAG pipeline setup for a new session ---
-            # a. Clear any data from a previous session
-            clear_vector_store()
+            
+
 
             # b. Process the new PDF into chunks
             text_chunks = process_pdf_semantically(filepath)
+            
             if not text_chunks:
                 return jsonify({"error": "Failed to extract text from the PDF."}), 500
 

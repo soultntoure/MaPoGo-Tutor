@@ -1,62 +1,67 @@
 # core/vector_store_manager.py
+
 import logging
-from typing import List, Optional
+from typing import Optional
 from langchain_community.vectorstores import Chroma
-from core.model_manager import embeddings_model
 from langchain.schema import Document
 from langchain.schema.vectorstore import VectorStoreRetriever
-from config import Config
+
+# Import the centralized embedding model
+from core.model_manager import embeddings_model
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
-# This global variable will act as our simple, in-memory "session" storage.
-# It holds the vector store for the most recently uploaded PDF.
-# Using 'Optional[Chroma]' for type hinting means it can either be a Chroma object or None.
+# --- Global state variables ---
+# This will hold our single, session-based vector store instance.
 vector_store: Optional[Chroma] = None
-
+# We'll use a constant name for our session's collection.
+SESSION_COLLECTION_NAME = "mapogo_tutor_session"
 
 def clear_vector_store():
     """
-    Clears the existing in-memory vector store.
-    This is called when a new PDF is uploaded to ensure a fresh session.
+    Forcefully clears the existing in-memory vector store and its collection.
+    This ensures no data persists between uploads.
     """
     global vector_store
+    if vector_store:
+        try:
+            # The correct way to clear Chroma is to delete the collection.
+            logging.info(f"Attempting to delete collection: '{SESSION_COLLECTION_NAME}'")
+            vector_store._client.delete_collection(name=SESSION_COLLECTION_NAME)
+            logging.info("--- In-memory vector store collection deleted successfully. ---")
+        except Exception as e:
+            # This might happen if the collection was already gone, which is fine.
+            logging.error(f"Error while deleting collection (might be benign): {e}")
+    
+    # Set the Python variable to None to be sure.
     vector_store = None
-    print("--- In-memory vector store cleared. ---")
 
-
-def create_vector_store(text_chunks: List[Document]):
+def create_vector_store(text_chunks: list[Document]):
     """
     Creates a new in-memory vector store from the provided text chunks.
-
-    This function takes the text chunks from the PDF processor, generates
-    embeddings for them using Google's model, and stores them in a Chroma
-    vector store that lives only in the application's memory.
-
-    Args:
-        text_chunks (List[Document]): A list of Document objects from the pdf_processor.
+    It FIRST ensures any old collection is deleted.
     """
     global vector_store
 
+    # --- This is the most important change ---
+    # Always clear the old store BEFORE creating a new one.
+    clear_vector_store()
+
     if not text_chunks:
-        print("No text chunks provided to create a vector store.")
+        logging.warning("No text chunks provided to create a vector store.")
         return
 
     try:
-
-        #  Create the Chroma vector store from the documents and embeddings
-        # This is the core step where text is converted to vectors and indexed.
-        logging.info(f"Creating vector store from {len(text_chunks)} chunks...")
+        logging.info(f"Creating new vector store collection '{SESSION_COLLECTION_NAME}' from {len(text_chunks)} chunks...")
         vector_store = Chroma.from_documents(
             documents=text_chunks,
-            embedding=embeddings_model
+            embedding=embeddings_model,
+            collection_name=SESSION_COLLECTION_NAME # Explicitly name our collection
         )
         logging.info("--- In-memory vector store created successfully. ---")
 
     except Exception as e:
-        print(f"An error occurred while creating the vector store: {e}")
-        # Ensure the store is None if creation fails
+        logging.error(f"An error occurred while creating the vector store: {e}", exc_info=True)
         vector_store = None
 
 def get_total_chunks() -> int:
@@ -65,31 +70,21 @@ def get_total_chunks() -> int:
     """
     if vector_store:
         try:
-            # Chroma's API provides a count method on the underlying collection object.
-            # Note: _collection is a semi-private attribute, but it's the standard way
-            # to access this information in ChromaDB via LangChain.
             return vector_store._collection.count()
         except Exception as e:
             logging.error(f"Could not retrieve chunk count from vector store: {e}")
             return 0
     return 0
 
-# core/vector_store_manager.py
 def get_retriever(k: int = 5, search_type: str = "similarity") -> Optional[VectorStoreRetriever]:
     """
-    Returns a retriever object.
-    
-    Args:
-        k (int): Number of docs to retrieve.
-        search_type (str): The type of search to perform. "similarity" or "mmr".
+    Returns a retriever object from the currently active vector store.
     """
     if vector_store:
-        # Before creating the retriever, let's make sure k is not larger than the total chunks
         total_chunks_available = get_total_chunks()
         if total_chunks_available == 0:
-             return None # Should not happen if vector_store exists, but a good safeguard
+             return None
         
-        # Adjust k if it's too large
         safe_k = min(k, total_chunks_available)
         if k > total_chunks_available:
             logging.warning(f"Requested k={k} chunks, but only {total_chunks_available} are available. Using k={safe_k}.")

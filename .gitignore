@@ -1,12 +1,26 @@
-# Top-level .gitignore
+# .gitignore
 
-# Python / Backend
+# --- Python / Backend ---
 backend/venv/
 backend/__pycache__/
-backend/.env
 backend/temp_uploads/
+backend/.env
 
-# Node / Frontend
+# --- Node.js / Frontend ---
 frontend/node_modules/
 frontend/dist/
 frontend/.env
+frontend/.env.*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/bun.lockb
+
+# --- IDE / OS Files ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
