@@ -1,7 +1,8 @@
 # test_full_rag_pipeline.py
 
-import os
 import logging
+import json
+import os
 from dotenv import load_dotenv
 
 # --- Important: Load environment variables before importing other modules ---
@@ -105,10 +106,41 @@ def run_test_pipeline():
 
     # Test 4: Quiz Generation
     print("\n" + "="*50)
-    logging.info("TEST 4: Generating a 'hard' quiz...")
-    quiz = llm_handler.get_quiz_questions(difficulty="hard", num_questions=5)
-    print("\nGENERATED QUIZ:")
-    print(quiz)
+    logging.info("TEST 4: Generating a 'hard' quiz (with structured JSON output)...")
+    # Let's request 3 questions for a concise test
+    structured_quiz = llm_handler.get_quiz_questions(difficulty="hard", num_questions=3)
+    
+    print("\nGENERATED QUIZ DATA:")
+
+    # First, let's inspect the raw structured data that our API will use.
+    # This is the most important part of the test.
+    print("\n--- Raw JSON Structure (as seen by the API) ---")
+    print(json.dumps(structured_quiz, indent=2))
+    print("--- End Raw JSON ---\n")
+
+    # Now, we'll parse and display it in a user-friendly format to verify the content.
+    if structured_quiz and isinstance(structured_quiz, list):
+        print("--- Human-Readable View ---")
+        for i, item in enumerate(structured_quiz, 1):
+            # Use .get() for safe access in case a key is missing
+            question = item.get('question', 'N/A')
+            options = item.get('options', [])
+            answer = item.get('answer', 'N/A')
+
+            print(f"Question {i}: {question}")
+            if isinstance(options, list):
+                for opt in options:
+                    print(f"  - {opt}")
+            else:
+                print(f"  Options: {options}") # Fallback print
+            
+            print(f"Correct Answer: {answer}\n")
+        print("--- End Human-Readable View ---")
+    else:
+        # This will catch cases where the LLM failed to produce a valid list.
+        print("TEST FAILED: Did not receive a valid list of quiz questions from the handler.")
+        print(f"Received data: {structured_quiz}")
+
     print("="*50)
 
 

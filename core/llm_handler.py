@@ -1,8 +1,9 @@
 # core/llm_handler.py
 
 import logging
-from typing import List
+from typing import List, Dict 
 from langchain_core.documents import Document
+from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
@@ -121,56 +122,73 @@ Provide a detailed, clear, and helpful answer. If the information to answer the 
 
 
 
-    def get_quiz_questions(self, difficulty: str = "medium", num_questions: int = 5) -> str:
+    def get_quiz_questions(self, difficulty: str = "medium", num_questions: int = 5) -> List[Dict]:
         """
-        Generates a multiple-choice quiz from the document content using an
-        adaptive number of chunks based on the number of questions requested.
+        Generates a multiple-choice quiz and returns it as a structured
+        list of dictionaries (JSON), which is ideal for API responses.
         """
-        logging.info(f"Generating {difficulty} quiz with {num_questions} questions...")
+        logging.info(f"Generating structured JSON quiz: {difficulty}, {num_questions} questions.")
+
+        # --- 1. Define the desired JSON structure WRAPPED in a parent key ---
+        # We define the schemas for the inner objects as before.
+        question_schema = ResponseSchema(name="question", description="The text of the quiz question.")
+        options_schema = ResponseSchema(name="options", description="A list of 4 string options for the question.")
+        answer_schema = ResponseSchema(name="answer", description="The correct answer, which must be one of the strings from the 'options' list.")
         
-        # --- Adaptive K Logic for Quiz ---
-        # 1. Calculate a proportional k. We want ~2 chunks of context per question.
+        # [+] NEW: Define a schema for the top-level object.
+        # Its description tells the LLM that its value should be a list of other objects.
+        quiz_schema = ResponseSchema(
+            name="quiz",
+            description=f"A list of {num_questions} JSON objects, where each object has the keys 'question', 'options', and 'answer'."
+        )
+
+        # --- 2. Create a parser that expects the TOP-LEVEL schema ---
+        # The parser will now look for the "quiz" key.
+        output_parser = StructuredOutputParser.from_response_schemas([quiz_schema])
+        format_instructions = output_parser.get_format_instructions()
+
+        # --- 3. Adaptive Retrieval (your logic is perfect) ---
         proportional_k = num_questions * 2
-
-        # 2. Define safety nets: a floor and a ceiling for k.
-        MIN_QUIZ_CHUNKS = 4   # At least 4 chunks to ensure decent context
-        MAX_QUIZ_CHUNKS = 30  # Cap at 20 to avoid excessive context/cost
-
-        # 3. Clamp the calculated k within our min/max bounds.
-        dynamic_k = max(MIN_QUIZ_CHUNKS, min(proportional_k, MAX_QUIZ_CHUNKS))
+        dynamic_k = max(4, min(proportional_k, 20))
         
         logging.info(f"Adaptively retrieving {dynamic_k} chunks for the quiz.")
-
-        # --- Use the RIGHT retrieval strategy for a quiz: 'similarity' ---
-        # We want the most relevant chunks, not the most diverse.
         retriever = get_retriever(k=dynamic_k, search_type="similarity")
         if not retriever:
-            return "Vector store not initialized. Please upload a PDF first."
-        
-        # A generic query to gather important details for a quiz.
-        context_docs = retriever.invoke("Key concepts, important definitions, and significant details from the document.")
+            return []
+
+        context_docs = retriever.invoke("Key concepts, definitions, and important details suitable for a quiz.")
         context = format_docs(context_docs)
 
-        # --- The rest of the prompt and chain logic is unchanged ---
-        system_prompt = """You are an expert quizmaster. Based on the context below, create a multiple-choice quiz.
-            
-            Instructions:
-            1. Generate exactly {num_questions} questions.
-            2. The difficulty of the questions should be {difficulty}.
-            3. For each question, provide 4 options (A, B, C, D).
-            4. Clearly mark the correct answer for each question.
-            5. Ensure the questions are derived *only* from the provided context."""
-        human_prompt = "CONTEXT:\n{context}\n\nQUIZ:"
+        # --- 4. Update the prompt to ask for the WRAPPED structure ---
+        system_prompt = """You are an expert quizmaster AI. Your task is to create a quiz based *only* on the provided context.
         
+        Follow these instructions precisely:
+        1. Generate exactly {num_questions} questions of {difficulty} difficulty.
+        2. Base every question and answer strictly on the provided context.
+        3. **CRITICAL**: Format your entire output as a single JSON object with a single top-level key named "quiz". The value of "quiz" must be a JSON array (list) of question objects. Do not include any other text, explanations, or markdown formatting.
+        
+        {format_instructions}
+        """
+
         prompt_template = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
-            ("human", human_prompt)
+            ("human", "CONTEXT:\n{context}\n\nQUIZ JSON:")
         ])
         
-        chain = prompt_template | self.llm | self.output_parser
-        quiz = chain.invoke({
-            "num_questions": num_questions,
-            "difficulty": difficulty,
-            "context": context
-        })
-        return quiz
+        chain = prompt_template | self.llm | output_parser
+        
+        try:
+            # --- 5. Invoke the chain and EXTRACT the list from the parsed dictionary ---
+            parsed_output = chain.invoke({
+                "num_questions": num_questions,
+                "difficulty": difficulty,
+                "context": context,
+                "format_instructions": format_instructions
+            })
+            
+            # The parser now returns a dictionary: {'quiz': [...]}. We extract the list.
+            return parsed_output.get('quiz', [])
+
+        except Exception as e:
+            logging.error(f"Failed to parse LLM response into JSON for quiz. Error: {e}", exc_info=True)
+            return []

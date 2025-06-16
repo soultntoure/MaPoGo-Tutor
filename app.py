@@ -130,20 +130,45 @@ def explain_concept_endpoint():
 @app.route('/quiz', methods=['POST'])
 def get_quiz_endpoint():
     """
-    Endpoint to generate a quiz.
-    Expects a JSON body with optional "difficulty" and "num_questions" keys.
+    Endpoint to generate a quiz. It expects an optional JSON body with
+    "difficulty" and "num_questions" and returns a structured JSON response.
     """
     if not llm_handler:
-         return jsonify({"error": "LLM Handler is not available."}), 500
+         return jsonify({"error": "LLM Handler is not available. Server configuration issue."}), 500
 
     data = request.get_json()
-    # Provide defaults if keys are not in the JSON body
+    if not data:
+        # It's good practice to handle cases where the request body is empty
+        data = {}
+
+    # 1. Extract parameters with sensible defaults and type safety.
     difficulty = data.get('difficulty', 'medium')
-    num_questions = data.get('num_questions', 5)
-    
+    try:
+        # Ensure num_questions is treated as an integer
+        num_questions = int(data.get('num_questions', 5))
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid 'num_questions' format. It must be an integer."}), 400
+
     logging.info(f"Received request for a '{difficulty}' quiz with {num_questions} questions.")
-    quiz = llm_handler.get_quiz_questions(difficulty=difficulty, num_questions=num_questions)
-    return jsonify({"quiz": quiz})
+    
+    # 2. Call the LLM handler, which now does the heavy lifting of parsing.
+    # We expect `quiz_data` to be a List of Dictionaries.
+    quiz_data = llm_handler.get_quiz_questions(difficulty=difficulty, num_questions=num_questions)
+
+    # 3. Check if the quiz generation was successful.
+    # The handler returns an empty list `[]` on failure.
+    if not quiz_data:
+        logging.warning("Quiz generation returned no data. This could be due to a parsing error in the handler or insufficient context.")
+        # Return a structured error message that the frontend can use.
+        return jsonify({
+            "error": "Failed to generate quiz.",
+            "message": "Could not create a quiz from the provided document. The content may not be suitable or a server error occurred."
+        }), 500
+
+    # 4. Use `jsonify` to send the structured data to the frontend.
+    # We wrap our list in a dictionary with a 'quiz' key. This is a best practice.
+    # The frontend will receive: {"quiz": [{...}, {...}, ...]}
+    return jsonify({"quiz": quiz_data})
 
 
 # ==============================================================================
