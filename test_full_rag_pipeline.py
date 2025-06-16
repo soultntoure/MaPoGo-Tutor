@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 
 # Define the path to your test document
-PDF_PATH = "attention_is_all_you_need.pdf"
+PDF_PATH = "academic_handbook.pdf"
 
 
 # Define the test questions
@@ -97,12 +97,12 @@ def run_test_pipeline():
     # print("="*50)
     
     # Test 3: Document Summary
-    # print("\n" + "="*50)
-    # logging.info("TEST 3: Generating a document summary...")
-    # summary = llm_handler.get_summary()
-    # print("\nDOCUMENT SUMMARY:")
-    # print(summary)
-    # print("="*50)
+    print("\n" + "="*50)
+    logging.info("TEST 3: Generating a document summary...")
+    summary = llm_handler.get_summary()
+    print("\nDOCUMENT SUMMARY:")
+    print(summary)
+    print("="*50)
 
     # Test 4: Quiz Generation
     print("\n" + "="*50)
